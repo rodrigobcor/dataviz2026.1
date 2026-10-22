@@ -1,0 +1,12 @@
+{
+  "name": "meu-repo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "notebooks preview docs/index.html",
+    "build": "notebooks build --root docs -- docs/*.html"
+  },
+  "dependencies": {
+    "@observablehq/notebook-kit": "latest"
+  }
+}

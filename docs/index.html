@@ -1,6 +1,66 @@
 <!doctype html>
 <notebook theme="air">
-  <title>Untitled</title>
+  <title>Trabalho de DataViz</title>
+    <script type="text/markdown">
+    # Trabalho de DataViz
+
+    ## 1 Sobre os dados e indicadores
+
+    Os dados utilizados do Censo do Ensino Superior do INEP foram os relacionados à matrícula, ingresso (matrícula de novos alunos) e conclusão geral de todos os cursos, matrícula, ingresso e conclusão de pessoas com deficiência, os de políticas de ação afirmativa ou destinação de vagas reservadas para pessoas com deficiência e os dados de localização dos cursos. Todos foram selecionados e agregados a partir dos arquivos disponibilizados pelo INEP dos anos de 2014 a 2024.
+
+    Foram criados os seguintes indicadores para relacionar os dados e dar sentido a eles: taxa de PcD nas matrículas, taxa de PcD nos ingressantes, taxa de PcD nos concluintes, índice de equidade de conclusão PcD, cobertura de reserva de vagas PcD, taxa de conclusão por matrículas e matrículas PcD por 100 mil habitantes (por UF).
+  </script>
+  <script type="text/markdown">
+    ## 2 Tabelas dos indicadores
+
+    As fórmulas dos indicadores serão exibidas antes de cada visualização.
+
+    | Ano | Taxa de PcD nas matrículas | Taxa de PcD nos ingressantes | Taxa de PcD nos concluintes |
+    |---|---|---|---|
+    | 2024 | 0,01699274667 | 0,01953453305 | 0,01307252873 |
+    | 2023 | 0,01495167417 | 0,01493631354 | 0,0114865835 |
+    | 2022 | 0,01383759357 | 0,0132163983 | 0,008525226099 |
+    | 2021 | 0,01317796521 | 0,01436230179 | 0,008076406658 |
+    | 2020 | 0,009815006281 | 0,01159375483 | 0,005440935798 |
+    | 2019 | 0,00865700662 | 0,01043782292 | 0,005781627551 |
+    | 2018 | 0,007948842616 | 0,01174432223 | 0,00509383378 |
+    | 2017 | 0,006928987586 | 0,007900585133 | 0,005326365931 |
+    | 2016 | 0,007397145989 | 0,007225713958 | 0,006671791063 |
+    | 2015 | 0,00820835289 | 0,008148195176 | 0,005325697158 |
+    | 2014 | 0,007102983099 | 0,007546167764 | 0,004297473794 |
+
+    | Ano | Índice de equidade de conclusão PcD | Cobertura de reserva de vagas PcD | Taxa de conclusão por matrículas |
+    |---|---|---|---|
+    | 2024 | 0,6692009836 | 0,3830024182 | 0,09873361334 |
+    | 2023 | 0,7690373849 | 0,407239009 | 0,09737934985 |
+    | 2022 | 0,6450491204 | 0,3866168167 | 0,07210437967 |
+    | 2021 | 0,5623337244 | 0,3823985989 | 0,06344783664 |
+    | 2020 | 0,469298849 | 0,4301410206 | 0,05742764909 |
+    | 2019 | 0,553911251 | 0,3960223517 | 0,08309799916 |
+    | 2018 | 0,433727352 | 0,3252526587 | 0,08157738292 |
+    | 2017 | 0,6741736013 | 0,2117466411 | 0,0973512476 |
+    | 2016 | 0,9233400467 | 0,1462284639 | 0,1118430578 |
+    | 2015 | 0,6536045152 | 0,1163660655 | 0,07975951904 |
+    | 2014 | 0,5694908898 | 0,1037947291 | 0,07496715357 |
+
+    | Matrículas PcD por 100 mil habitantes (por UF) | RJ<sup>*</sup> | Total |
+    |---|---|---|
+    | 2024 | 17,10833286 | 14,78382049 |
+    | 2023 | 14,05847734 | 13,19444444 |
+    | 2022 | 10,70198515 | 12,43082101 |
+    | 2021 | 9,587435407 | 11,95743194 |
+    | 2020 | 8,221895966 | 8,44166537 |
+    | 2019 | 3,949070599 | 8,005287193 |
+    | 2018 | 3,428782754 | 7,330204095 |
+    | 2017 | 2,929756372 | 6,347108414 |
+    | 2016 | 2,458382489 | 6,775822615 |
+    | 2015 | 1,932611259 | 7,396111973 |
+    | 2014 | 1,972061514 | 6,443367923 |
+
+    <small><sup>*</sup> Outros estados ocultados para uma melhor visibilidade.</small>
+
+    ## 3 Visualizações
+  </script>
   <script id="48" type="text/x-typescript">
     const raw = await FileAttachment("indicadores.csv").text();
 
@@ -74,6 +134,13 @@
         .style("font", `12px ${tema.fonte}`).style("max-width", "100%").style("height", "auto");
     }
   </script>
+    <script type="text/markdown">
+    ### 3.1 Taxas de PcD: matrículas, ingressantes e concluintes
+
+    - **Taxa de PcD nas matrículas** = matrículas PcD / matrículas totais
+    - **Taxa de PcD nos ingressantes** = ingressantes PcD / ingressantes totais
+    - **Taxa de PcD nos concluintes** = concluintes PcD / concluintes totais
+  </script>
   <script id="64" type="text/x-typescript">
     {
       const w = 760, h = 40 + dados.length * 30 + 40, m = {t: 40, r: 40, b: 40, l: 60};
@@ -122,6 +189,14 @@
       .attr("viewBox", [0, 0, w, h]).attr("width", w).attr("height", h)
       .style("font", "12px system-ui, sans-serif").style("max-width", "100%").style("height", "auto");
   </script>
+    <script type="text/markdown">
+    ### 3.2 Índice de equidade de conclusão PcD
+
+    **Índice de equidade de conclusão PcD** = (concluintes PcD / concluintes totais) ÷ (ingressantes PcD / ingressantes totais)
+
+    - Se maior que 1, as pessoas com deficiência concluem proporcionalmente mais.
+    - Se menor que 1, há barreira na trajetória.
+  </script>
   <script id="76" type="text/x-typescript">
     {
       const CONECTAR = false;
@@ -167,6 +242,11 @@
       .attr("viewBox", [0, 0, w, h]).attr("width", w).attr("height", h)
       .style("font", "12px system-ui, sans-serif").style("max-width", "100%").style("height", "auto");
   </script>
+    <script type="text/markdown">
+    ### 3.3 Cobertura de reserva de vagas PcD
+
+    **Cobertura de reserva de vagas PcD** = reserva de vagas PcD / matrículas PcD
+  </script>
   <script id="86" type="text/x-typescript">
     {
       const cols = 11, cw = 104, ch = 76, gap = 6, m = {t: 44, l: 20, r: 20, b: 56};
@@ -199,6 +279,11 @@
       svg.append("text").attr("x", m.l + 180).attr("y", h - 6).attr("text-anchor", "end").attr("font-size", 10).text(fmtCob(hi));
       display(svg.node());
     }
+  </script>
+    <script type="text/markdown">
+    ### 3.4 Taxa de conclusão por matrículas
+
+    **Taxa de conclusão por matrículas** = concluintes PcD / matrículas PcD
   </script>
   <script id="91" type="text/x-typescript">
     {
@@ -358,6 +443,9 @@
       const proj = d3.geoMercator().fitExtent([[6, 6], [w - 6, h - 6]], geoUf);
       return {proj, path: d3.geoPath(proj)};
     };
+  </script>
+    <script type="text/markdown">
+    ### 3.5 Matrículas PcD por 100 mil habitantes (por UF)
   </script>
   <script id="113" type="text/x-typescript">
     display(comSlider(anoSel => {

@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "notebooks preview docs/index.html",
+    "dev": "notebooks preview --root docs",
     "build": "notebooks build --root docs -- docs/*.html"
   },
   "dependencies": {

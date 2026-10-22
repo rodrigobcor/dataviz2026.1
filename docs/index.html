@@ -1,7 +1,7 @@
 <!doctype html>
 <notebook theme="air">
   <title>Untitled</title>
-  <script id="48" type="text/x-typescript" pinned="">
+  <script id="48" type="text/x-typescript">
     const raw = await FileAttachment("indicadores.csv").text();
 
     const dados = (() => {
@@ -20,7 +20,7 @@
       })).sort((a, b) => a.ano - b.ano);
     })();
   </script>
-  <script id="58" type="text/x-typescript" pinned="">
+  <script id="58" type="text/x-typescript">
     const indicadores = [
       {k: "mat", nome: "PcD nas matrículas",        fmt: d3.format(".2%")},
       {k: "ing", nome: "PcD nos ingressantes",      fmt: d3.format(".2%")},
@@ -30,7 +30,7 @@
       {k: "tcm", nome: "Conclusão por matrículas",  fmt: d3.format(".1%")}
     ]
   </script>
-  <script id="59" type="text/x-typescript" pinned="">
+  <script id="59" type="text/x-typescript">
     // z-score por coluna (heatmap, bump, radar de perfil)
     const zs = (() => {
       const out = dados.map(d => ({ano: d.ano}));
@@ -41,7 +41,7 @@
       return out;
     })();
   </script>
-  <script id="61" type="text/x-typescript" pinned="">
+  <script id="61" type="text/x-typescript">
     // min-max 0–1 (radar)
     const mm = (() => {
       const out = dados.map(d => ({ano: d.ano}));
@@ -52,7 +52,7 @@
       return out;
     })();
   </script>
-  <script id="62" type="text/x-typescript" pinned="">
+  <script id="62" type="text/x-typescript">
     // índice base 2014 = 100
     const idx = (() => {
       const base = dados[0];
@@ -62,7 +62,7 @@
       }));
     })();
   </script>
-  <script id="63" type="text/x-typescript" pinned="">
+  <script id="63" type="text/x-typescript">
     const tema = ({
       w: 760, m: {t: 40, r: 40, b: 40, l: 60},
       cor: {pos: "#2a9d8f", neg: "#e76f51", neutro: "#6c757d", texto: "#222"},
@@ -74,7 +74,7 @@
         .style("font", `12px ${tema.fonte}`).style("max-width", "100%").style("height", "auto");
     }
   </script>
-  <script id="64" type="text/x-typescript" pinned="">
+  <script id="64" type="text/x-typescript">
     {
       const w = 760, h = 40 + dados.length * 30 + 40, m = {t: 40, r: 40, b: 40, l: 60};
       const svg = novoSvg(w, h);
@@ -100,13 +100,13 @@
       display(svg.node());
     }
   </script>
-  <script id="69" type="text/x-typescript" pinned="">
+  <script id="69" type="text/x-typescript">
     const fmtEq = d3.formatLocale({decimal: ",", thousands: ".", grouping: [3], currency: ["", ""]}).format(".2f");
   </script>
-  <script id="70" type="text/x-typescript" pinned="">
+  <script id="70" type="text/x-typescript">
     const serieEq = dados.map(d => ({ano: d.ano, v: d.eq}));
   </script>
-  <script id="71" type="text/x-typescript" pinned="">
+  <script id="71" type="text/x-typescript">
     // zonas usadas no semáforo, bullet, lollipop e dumbbell
     const zonasEq = [
       {nome: "barreira forte",    lo: 0,   hi: 0.5,      cor: "#d1495b"},
@@ -117,12 +117,12 @@
     ];
     const zonaEq = v => zonasEq.find(z => v >= z.lo && v < z.hi);
   </script>
-  <script id="72" type="text/x-typescript" pinned="">
+  <script id="72" type="text/x-typescript">
     const svgEq = (w, h) => d3.create("svg")
       .attr("viewBox", [0, 0, w, h]).attr("width", w).attr("height", h)
       .style("font", "12px system-ui, sans-serif").style("max-width", "100%").style("height", "auto");
   </script>
-  <script id="76" type="text/x-typescript" pinned="">
+  <script id="76" type="text/x-typescript">
     {
       const CONECTAR = false;
       const w = 780, h = 420, m = {t: 40, r: 30, b: 40, l: 56};
@@ -147,27 +147,27 @@
       display(svg.node());
     }
   </script>
-  <script id="82" type="text/x-typescript" pinned="">
+  <script id="82" type="text/x-typescript">
     // troque para true para mostrar taxas decimais (0,383) em vez de porcentagens (38,3%)
     const FORMATO_TAXA = false;
   </script>
-  <script id="83" type="text/x-typescript" pinned="">
+  <script id="83" type="text/x-typescript">
     const locPt = d3.formatLocale({decimal: ",", thousands: ".", grouping: [3], currency: ["", ""]});
     const fmtCob     = FORMATO_TAXA ? locPt.format(".3f") : locPt.format(".1%");
     const fmtTcm     = FORMATO_TAXA ? locPt.format(".4f") : locPt.format(".2%");
     const fmtCobEixo = FORMATO_TAXA ? locPt.format(".2f") : locPt.format(".0%");
     const fmtTcmEixo = FORMATO_TAXA ? locPt.format(".2f") : locPt.format(".0%");
   </script>
-  <script id="84" type="text/x-typescript" pinned="">
+  <script id="84" type="text/x-typescript">
     const serieCob = dados.map(d => ({ano: d.ano, v: d.cob}));
     const serieTcm = dados.map(d => ({ano: d.ano, v: d.tcm}));
   </script>
-  <script id="85" type="text/x-typescript" pinned="">
+  <script id="85" type="text/x-typescript">
     const svgInd = (w, h) => d3.create("svg")
       .attr("viewBox", [0, 0, w, h]).attr("width", w).attr("height", h)
       .style("font", "12px system-ui, sans-serif").style("max-width", "100%").style("height", "auto");
   </script>
-  <script id="86" type="text/x-typescript" pinned="">
+  <script id="86" type="text/x-typescript">
     {
       const cols = 11, cw = 104, ch = 76, gap = 6, m = {t: 44, l: 20, r: 20, b: 56};
       const rows = Math.ceil(serieCob.length / cols);
@@ -200,7 +200,7 @@
       display(svg.node());
     }
   </script>
-  <script id="91" type="text/x-typescript" pinned="">
+  <script id="91" type="text/x-typescript">
     {
       const w = 820, h = 170, m = {t: 50, r: 20, b: 30, l: 20};
       const svg = svgInd(w, h);
@@ -230,7 +230,7 @@
       display(svg.node());
     }
   </script>
-  <script id="92" type="text/x-typescript" pinned="">
+  <script id="92" type="text/x-typescript">
     {
       const w = 780, h = 380, m = {t: 40, r: 30, b: 40, l: 56};
       const svg = svgInd(w, h);
@@ -252,10 +252,10 @@
       display(svg.node());
     }
   </script>
-  <script id="99" type="text/x-typescript" pinned="">
+  <script id="99" type="text/x-typescript">
     const rawUf = await FileAttachment("uf.csv").text();
   </script>
-  <script id="102" type="text/x-typescript" pinned="">
+  <script id="102" type="text/x-typescript">
     const tabelaUf = (() => {
       const primeira = rawUf.split("\n")[0];
       const sep = primeira.includes("\t") ? "\t" : primeira.includes(";") ? ";" : ",";
@@ -270,7 +270,7 @@
       return longo;
     })();
   </script>
-  <script id="103" type="text/x-typescript" pinned="">
+  <script id="103" type="text/x-typescript">
     const anosUf = [...new Set(tabelaUf.map(d => d.ano))].sort(d3.ascending);
     const ufs = [...new Set(tabelaUf.map(d => d.uf))].filter(u => u !== "Total");
     const dUf = tabelaUf.filter(d => d.uf !== "Total");
@@ -278,7 +278,7 @@
     const valUf = new Map(tabelaUf.map(d => [`${d.ano}|${d.uf}`, d.v]));
     const getV = (ano, uf) => valUf.get(`${ano}|${uf}`);
   </script>
-  <script id="104" type="text/x-typescript" pinned="">
+  <script id="104" type="text/x-typescript">
     const comSlider = (desenhar, {valor = 2024} = {}) => {
       const entrada = Inputs.range([anosUf[0], anosUf[anosUf.length - 1]], {step: 1, value: valor, label: "Ano"});
       const area = document.createElement("div");
@@ -290,7 +290,7 @@
       return raiz;
     };
   </script>
-  <script id="105" type="text/x-typescript" pinned="">
+  <script id="105" type="text/x-typescript">
     const regioes = {
       "Norte":        ["RO", "AC", "AM", "RR", "PA", "AP", "TO"],
       "Nordeste":     ["MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA"],
@@ -301,17 +301,17 @@
     const regiaoDe = new Map(Object.entries(regioes).flatMap(([r, l]) => l.map(u => [u, r])));
     const corRegiao = d3.scaleOrdinal().domain(Object.keys(regioes)).range(["#2a9d8f", "#e76f51", "#e9c46a", "#264653", "#8e7dbe"]);
   </script>
-  <script id="106" type="text/x-typescript" pinned="">
+  <script id="106" type="text/x-typescript">
     const fmtUf = d3.formatLocale({decimal: ",", thousands: ".", grouping: [3], currency: ["", ""]}).format(".1f");
     const textoSobre = fill => d3.lab(fill).l < 58 ? "white" : "#222";
     const svgUf = (w, h) => d3.create("svg")
       .attr("viewBox", [0, 0, w, h]).attr("width", w).attr("height", h)
       .style("font", "12px system-ui, sans-serif").style("max-width", "100%").style("height", "auto");
   </script>
-  <script id="107" type="text/x-typescript" pinned="">
+  <script id="107" type="text/x-typescript">
     const corUf = d3.scaleSequentialSqrt(d3.interpolateYlGnBu).domain([0, d3.max(dUf, d => d.v)]);
   </script>
-  <script id="108" type="text/x-typescript" pinned="">
+  <script id="108" type="text/x-typescript">
     const legendaSqrt = (svg, x, y, L = 220) => {
       const max = corUf.domain()[1];
       const id = "grad-uf-" + Math.random().toString(36).slice(2, 8);
@@ -325,11 +325,11 @@
       });
     };
   </script>
-  <script id="109" type="text/x-typescript" pinned="">
+  <script id="109" type="text/x-typescript">
     const codUf = {11: "RO", 12: "AC", 13: "AM", 14: "RR", 15: "PA", 16: "AP", 17: "TO", 21: "MA", 22: "PI", 23: "CE", 24: "RN", 25: "PB", 26: "PE", 27: "AL", 28: "SE", 29: "BA",
       31: "MG", 32: "ES", 33: "RJ", 35: "SP", 41: "PR", 42: "SC", 43: "RS", 50: "MS", 51: "MT", 52: "GO", 53: "DF"};
   </script>
-  <script id="110" type="text/x-typescript" pinned="">
+  <script id="110" type="text/x-typescript">
     const geoUf = await (async () => {
       const url = "https://servicodados.ibge.gov.br/api/v3/malhas/paises/BR?formato=application/vnd.geo+json&qualidade=minima&intrarregiao=UF";
       const j = await fetch(url).then(r => { if (!r.ok) throw new Error(`IBGE respondeu ${r.status}`); return r.json(); });
@@ -353,13 +353,13 @@
       return j;
     })();
   </script>
-  <script id="111" type="text/x-typescript" pinned="">
+  <script id="111" type="text/x-typescript">
     const mapaUf = (w, h) => {
       const proj = d3.geoMercator().fitExtent([[6, 6], [w - 6, h - 6]], geoUf);
       return {proj, path: d3.geoPath(proj)};
     };
   </script>
-  <script id="113" type="text/x-typescript" pinned="">
+  <script id="113" type="text/x-typescript">
     display(comSlider(anoSel => {
       const w = 640, h = 690;
       const svg = svgUf(w, h);
@@ -379,7 +379,7 @@
       return svg.node();
     }));
   </script>
-  <script id="117" type="text/x-typescript" pinned="">
+  <script id="117" type="text/x-typescript">
     display(comSlider(anoSel => {
       const ordenarPor = "ano";   // "ano" ou "media"
       const chave = u => ordenarPor === "media" ? d3.mean(anosUf, a => getV(a, u)) : getV(anoSel, u);
@@ -408,7 +408,7 @@
       return svg.node();
     }));
   </script>
-  <script id="126" type="text/x-typescript" pinned="">
+  <script id="126" type="text/x-typescript">
     const desenharViolinos = ano => {
       const w = 720, h = 460, m = {t: 50, r: 30, b: 50, l: 56};
       const svg = svgUf(w, h);
@@ -443,10 +443,10 @@
       return svg.node();
     };
   </script>
-  <script id="127" type="text/x-typescript" pinned="">
+  <script id="127" type="text/x-typescript">
     display(comSlider(ano => desenharViolinos(ano)));
   </script>
-  <script id="131" type="text/x-typescript" pinned="">
+  <script id="131" type="text/x-typescript">
     display(comSlider(anoSel => {
       const teto = 130;
       const ordem = [...ufs].sort((a, b) => getV(anoSel, b) - getV(anoSel, a));

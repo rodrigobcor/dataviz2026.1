@@ -1,0 +1,476 @@
+<!doctype html>
+<notebook theme="air">
+  <title>Untitled</title>
+  <script id="48" type="text/x-typescript" pinned="">
+    const raw = await FileAttachment("indicadores.csv").text();
+
+    const dados = (() => {
+      const primeira = raw.split("\n")[0];
+      const sep = primeira.includes(";") ? ";" : primeira.includes("\t") ? "\t" : ",";
+      const linhas = d3.dsvFormat(sep).parse(raw.trim());
+      const num = s => +String(s).trim().replace(",", ".");
+      return linhas.map(r => ({
+        ano: +r["Ano"],
+        mat: num(r["Taxa de PcD nas matrículas"]),
+        ing: num(r["Taxa de PcD nos ingressantes"]),
+        con: num(r["Taxa de PcD nos concluintes"]),
+        eq:  num(r["Índice de equidade de conclusão PcD"]),
+        cob: num(r["Cobertura de reserva de vagas PcD"]),
+        tcm: num(r["Taxa de conclusão por matrículas"])
+      })).sort((a, b) => a.ano - b.ano);
+    })();
+  </script>
+  <script id="58" type="text/x-typescript" pinned="">
+    const indicadores = [
+      {k: "mat", nome: "PcD nas matrículas",        fmt: d3.format(".2%")},
+      {k: "ing", nome: "PcD nos ingressantes",      fmt: d3.format(".2%")},
+      {k: "con", nome: "PcD nos concluintes",       fmt: d3.format(".2%")},
+      {k: "eq",  nome: "Equidade de conclusão",     fmt: d3.format(".2f")},
+      {k: "cob", nome: "Cobertura de reserva",      fmt: d3.format(".1%")},
+      {k: "tcm", nome: "Conclusão por matrículas",  fmt: d3.format(".1%")}
+    ]
+  </script>
+  <script id="59" type="text/x-typescript" pinned="">
+    // z-score por coluna (heatmap, bump, radar de perfil)
+    const zs = (() => {
+      const out = dados.map(d => ({ano: d.ano}));
+      for (const {k} of indicadores) {
+        const m = d3.mean(dados, d => d[k]), s = d3.deviation(dados, d => d[k]);
+        dados.forEach((d, i) => out[i][k] = (d[k] - m) / s);
+      }
+      return out;
+    })();
+  </script>
+  <script id="61" type="text/x-typescript" pinned="">
+    // min-max 0–1 (radar)
+    const mm = (() => {
+      const out = dados.map(d => ({ano: d.ano}));
+      for (const {k} of indicadores) {
+        const [lo, hi] = d3.extent(dados, d => d[k]);
+        dados.forEach((d, i) => out[i][k] = (d[k] - lo) / (hi - lo));
+      }
+      return out;
+    })();
+  </script>
+  <script id="62" type="text/x-typescript" pinned="">
+    // índice base 2014 = 100
+    const idx = (() => {
+      const base = dados[0];
+      return dados.map(d => ({
+        ano: d.ano,
+        ...Object.fromEntries(indicadores.map(({k}) => [k, 100 * d[k] / base[k]]))
+      }));
+    })();
+  </script>
+  <script id="63" type="text/x-typescript" pinned="">
+    const tema = ({
+      w: 760, m: {t: 40, r: 40, b: 40, l: 60},
+      cor: {pos: "#2a9d8f", neg: "#e76f51", neutro: "#6c757d", texto: "#222"},
+      fonte: "system-ui, sans-serif"
+    })
+
+    function novoSvg(w, h) {
+      return d3.create("svg").attr("viewBox", [0, 0, w, h]).attr("width", w).attr("height", h)
+        .style("font", `12px ${tema.fonte}`).style("max-width", "100%").style("height", "auto");
+    }
+  </script>
+  <script id="64" type="text/x-typescript" pinned="">
+    {
+      const w = 760, h = 40 + dados.length * 30 + 40, m = {t: 40, r: 40, b: 40, l: 60};
+      const svg = novoSvg(w, h);
+      const x = d3.scaleLinear().domain([0, d3.max(dados, d => Math.max(d.ing, d.mat, d.con)) * 1.1]).range([m.l, w - m.r]);
+      const y = d3.scalePoint().domain(dados.map(d => d.ano).reverse()).range([m.t, h - m.b]).padding(0.5);
+
+      svg.append("g").attr("transform", `translate(0,${h - m.b})`).call(d3.axisBottom(x).ticks(6, ".1%")).call(g => g.select(".domain").remove());
+      svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y)).call(g => g.select(".domain").remove());
+
+      const TRES_PONTOS = true; // mude para false para dumbbell simples
+      for (const d of dados) {
+        const c = d.con >= d.ing ? tema.cor.pos : tema.cor.neg;   // direção do gap
+        svg.append("line").attr("x1", x(d.ing)).attr("x2", x(d.con)).attr("y1", y(d.ano)).attr("y2", y(d.ano)).attr("stroke", c).attr("stroke-width", 4).attr("opacity", 0.8);
+        svg.append("circle").attr("cx", x(d.ing)).attr("cy", y(d.ano)).attr("r", 6).attr("fill", "#264653");
+        svg.append("circle").attr("cx", x(d.con)).attr("cy", y(d.ano)).attr("r", 6).attr("fill", "#f4a261");
+        if (TRES_PONTOS) svg.append("circle").attr("cx", x(d.mat)).attr("cy", y(d.ano)).attr("r", 4).attr("fill", "white").attr("stroke", "#555").attr("stroke-width", 2);
+      }
+      // legenda
+      [["Ingressantes", "#264653"], ["Concluintes", "#f4a261"], ["Matrículas", "white"]].forEach(([t, c], i) => {
+        svg.append("circle").attr("cx", m.l + i * 120).attr("cy", 16).attr("r", 5).attr("fill", c).attr("stroke", "#555");
+        svg.append("text").attr("x", m.l + i * 120 + 10).attr("y", 20).text(t);
+      });
+      display(svg.node());
+    }
+  </script>
+  <script id="69" type="text/x-typescript" pinned="">
+    const fmtEq = d3.formatLocale({decimal: ",", thousands: ".", grouping: [3], currency: ["", ""]}).format(".2f");
+  </script>
+  <script id="70" type="text/x-typescript" pinned="">
+    const serieEq = dados.map(d => ({ano: d.ano, v: d.eq}));
+  </script>
+  <script id="71" type="text/x-typescript" pinned="">
+    // zonas usadas no semáforo, bullet, lollipop e dumbbell
+    const zonasEq = [
+      {nome: "barreira forte",    lo: 0,   hi: 0.5,      cor: "#d1495b"},
+      {nome: "barreira moderada", lo: 0.5, hi: 0.7,      cor: "#f4a261"},
+      {nome: "atenção",           lo: 0.7, hi: 0.9,      cor: "#e9c46a"},
+      {nome: "paridade",          lo: 0.9, hi: 1.0,      cor: "#2a9d8f"},
+      {nome: "favorável",         lo: 1.0, hi: Infinity, cor: "#3a86c8"}
+    ];
+    const zonaEq = v => zonasEq.find(z => v >= z.lo && v < z.hi);
+  </script>
+  <script id="72" type="text/x-typescript" pinned="">
+    const svgEq = (w, h) => d3.create("svg")
+      .attr("viewBox", [0, 0, w, h]).attr("width", w).attr("height", h)
+      .style("font", "12px system-ui, sans-serif").style("max-width", "100%").style("height", "auto");
+  </script>
+  <script id="76" type="text/x-typescript" pinned="">
+    {
+      const CONECTAR = false;
+      const w = 780, h = 420, m = {t: 40, r: 30, b: 40, l: 56};
+      const svg = svgEq(w, h);
+      const x = d3.scalePoint().domain(serieEq.map(d => d.ano)).range([m.l, w - m.r]).padding(0.5);
+      const y = d3.scaleLinear().domain([0.3, 1.2]).range([h - m.b, m.t]);
+
+      svg.append("rect").attr("x", m.l).attr("width", w - m.l - m.r).attr("y", y(1.1)).attr("height", y(0.9) - y(1.1)).attr("fill", "#2a9d8f").attr("opacity", 0.18);
+      svg.append("text").attr("x", w - m.r - 6).attr("y", y(1.1) + 14).attr("text-anchor", "end").attr("fill", "#2a9d8f").attr("font-size", 11).text("zona de paridade (0,9 – 1,1)");
+      svg.append("line").attr("x1", m.l).attr("x2", w - m.r).attr("y1", y(1)).attr("y2", y(1)).attr("stroke", "#2a9d8f").attr("stroke-dasharray", "4,3");
+
+      svg.append("g").attr("transform", `translate(0,${h - m.b})`).call(d3.axisBottom(x));
+      svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(8).tickFormat(fmtEq));
+
+      if (CONECTAR) svg.append("path").datum(serieEq).attr("d", d3.line().x(d => x(d.ano)).y(d => y(d.v))).attr("fill", "none").attr("stroke", "#999");
+      for (const d of serieEq) {
+        const fora = d.v < 0.9 || d.v > 1.1;
+        svg.append("circle").attr("cx", x(d.ano)).attr("cy", y(d.v)).attr("r", 7).attr("fill", zonaEq(d.v).cor).attr("stroke", "#222")
+          .append("title").text(`${d.ano}: ${fmtEq(d.v)}`);
+        svg.append("text").attr("x", x(d.ano)).attr("y", y(d.v) + (fora ? 20 : -12)).attr("text-anchor", "middle").attr("font-size", 11).attr("font-weight", fora ? "normal" : "bold").text(fmtEq(d.v));
+      }
+      display(svg.node());
+    }
+  </script>
+  <script id="82" type="text/x-typescript" pinned="">
+    // troque para true para mostrar taxas decimais (0,383) em vez de porcentagens (38,3%)
+    const FORMATO_TAXA = false;
+  </script>
+  <script id="83" type="text/x-typescript" pinned="">
+    const locPt = d3.formatLocale({decimal: ",", thousands: ".", grouping: [3], currency: ["", ""]});
+    const fmtCob     = FORMATO_TAXA ? locPt.format(".3f") : locPt.format(".1%");
+    const fmtTcm     = FORMATO_TAXA ? locPt.format(".4f") : locPt.format(".2%");
+    const fmtCobEixo = FORMATO_TAXA ? locPt.format(".2f") : locPt.format(".0%");
+    const fmtTcmEixo = FORMATO_TAXA ? locPt.format(".2f") : locPt.format(".0%");
+  </script>
+  <script id="84" type="text/x-typescript" pinned="">
+    const serieCob = dados.map(d => ({ano: d.ano, v: d.cob}));
+    const serieTcm = dados.map(d => ({ano: d.ano, v: d.tcm}));
+  </script>
+  <script id="85" type="text/x-typescript" pinned="">
+    const svgInd = (w, h) => d3.create("svg")
+      .attr("viewBox", [0, 0, w, h]).attr("width", w).attr("height", h)
+      .style("font", "12px system-ui, sans-serif").style("max-width", "100%").style("height", "auto");
+  </script>
+  <script id="86" type="text/x-typescript" pinned="">
+    {
+      const cols = 11, cw = 104, ch = 76, gap = 6, m = {t: 44, l: 20, r: 20, b: 56};
+      const rows = Math.ceil(serieCob.length / cols);
+      const w = m.l + m.r + cols * (cw + gap), h = m.t + rows * (ch + gap) + m.b;
+      const svg = svgInd(w, h);
+      const [lo, hi] = d3.extent(serieCob, d => d.v);
+      const cor = d3.scaleSequential(d3.interpolateBlues).domain([lo - (hi - lo) * 0.15, hi]);
+
+      svg.append("text").attr("x", m.l).attr("y", 22).attr("font-weight", "bold").text("Cobertura de reserva de vagas PcD · 2014–2024");
+
+      serieCob.forEach((d, i) => {
+        const x0 = m.l + (i % cols) * (cw + gap), y0 = m.t + Math.floor(i / cols) * (ch + gap);
+        const fill = cor(d.v), extremo = d.v === lo || d.v === hi;
+        svg.append("rect").attr("x", x0).attr("y", y0).attr("width", cw).attr("height", ch).attr("rx", 6).attr("fill", fill)
+          .attr("stroke", extremo ? "#222" : "#ddd").attr("stroke-width", extremo ? 2.5 : 1)
+          .append("title").text(`${d.ano}: ${fmtCob(d.v)}`);
+        const txt = d3.lab(fill).l < 58 ? "white" : "#222";
+        svg.append("text").attr("x", x0 + 8).attr("y", y0 + 16).attr("fill", txt).attr("font-size", 11).text(d.ano);
+        svg.append("text").attr("x", x0 + cw / 2).attr("y", y0 + ch / 2 + 6).attr("text-anchor", "middle").attr("fill", txt).attr("font-weight", "bold").attr("font-size", 16).text(fmtCob(d.v));
+        if (extremo) svg.append("text").attr("x", x0 + cw / 2).attr("y", y0 + ch - 8).attr("text-anchor", "middle").attr("fill", txt).attr("font-size", 10).text(d.v === hi ? "pico" : "vale");
+      });
+
+      // legenda
+      const gid = "grad-cob-heat";
+      const grad = svg.append("defs").append("linearGradient").attr("id", gid);
+      d3.range(0, 1.01, 0.1).forEach(t => grad.append("stop").attr("offset", `${t * 100}%`).attr("stop-color", cor(lo + t * (hi - lo))));
+      svg.append("rect").attr("x", m.l).attr("y", h - 30).attr("width", 180).attr("height", 8).attr("fill", `url(#${gid})`);
+      svg.append("text").attr("x", m.l).attr("y", h - 6).attr("font-size", 10).text(fmtCob(lo));
+      svg.append("text").attr("x", m.l + 180).attr("y", h - 6).attr("text-anchor", "end").attr("font-size", 10).text(fmtCob(hi));
+      display(svg.node());
+    }
+  </script>
+  <script id="91" type="text/x-typescript" pinned="">
+    {
+      const w = 820, h = 170, m = {t: 50, r: 20, b: 30, l: 20};
+      const svg = svgInd(w, h);
+      const [lo, hi] = d3.extent(serieTcm, d => d.v);
+      const x = d3.scaleBand().domain(serieTcm.map(d => d.ano)).range([m.l, w - m.r]).padding(0.05);
+      const cor = d3.scaleSequential(d3.interpolateBlues).domain([lo, hi]);
+      const cy = m.t, ch = 60;
+
+      for (const d of serieTcm) {
+        const fill = cor(d.v), c = d3.color(fill);
+        svg.append("rect").attr("x", x(d.ano)).attr("y", cy).attr("width", x.bandwidth()).attr("height", ch).attr("rx", 4).attr("fill", fill)
+          .append("title").text(`${d.ano}: ${fmtTcm(d.v)}`);
+        svg.append("text").attr("x", x(d.ano) + x.bandwidth() / 2).attr("y", cy - 8).attr("text-anchor", "middle").attr("fill", "#555").text(d.ano);
+        svg.append("text").attr("x", x(d.ano) + x.bandwidth() / 2).attr("y", cy + ch / 2).attr("dy", "0.35em").attr("text-anchor", "middle")
+          .attr("fill", d3.lab(c).l < 60 ? "white" : "#222").attr("font-weight", (d.v === lo || d.v === hi) ? "bold" : "normal").text(fmtTcm(d.v));
+      }
+      [[serieTcm.find(d => d.v === lo), "mínimo"], [serieTcm.find(d => d.v === hi), "máximo"]].forEach(([d, t]) =>
+        svg.append("text").attr("x", x(d.ano) + x.bandwidth() / 2).attr("y", cy + ch + 18).attr("text-anchor", "middle").attr("font-size", 11).attr("fill", "#264653").text(`▲ ${t}`));
+
+      const gid = "grad-tcm-faixa";
+      const grad = svg.append("defs").append("linearGradient").attr("id", gid);
+      d3.range(0, 1.01, 0.1).forEach(t => grad.append("stop").attr("offset", `${t * 100}%`).attr("stop-color", cor(lo + t * (hi - lo))));
+      svg.append("rect").attr("x", w - m.r - 160).attr("y", h - 18).attr("width", 160).attr("height", 8).attr("fill", `url(#${gid})`);
+      svg.append("text").attr("x", w - m.r - 164).attr("y", h - 10).attr("text-anchor", "end").attr("font-size", 10).text(fmtTcm(lo));
+      svg.append("text").attr("x", w - m.r).attr("y", h - 22).attr("text-anchor", "end").attr("font-size", 10).text(fmtTcm(hi));
+      svg.append("text").attr("x", m.l).attr("y", 18).attr("font-weight", "bold").text("Taxa de conclusão por matrículas · 2014–2024");
+      display(svg.node());
+    }
+  </script>
+  <script id="92" type="text/x-typescript" pinned="">
+    {
+      const w = 780, h = 380, m = {t: 40, r: 30, b: 40, l: 56};
+      const svg = svgInd(w, h);
+      const x = d3.scaleLinear().domain([2014, 2024]).range([m.l, w - m.r]);
+      const y = d3.scaleLinear().domain([0.04, 0.125]).range([h - m.b, m.t]);
+
+      svg.append("g").attr("transform", `translate(0,${h - m.b})`).call(d3.axisBottom(x).ticks(11).tickFormat(d3.format("d")));
+      svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(6).tickFormat(fmtTcmEixo));
+
+      svg.append("path").datum(serieTcm).attr("d", d3.line().x(d => x(d.ano)).y(d => y(d.v)).curve(d3.curveStepAfter))
+        .attr("fill", "none").attr("stroke", "#b0b7c3").attr("stroke-width", 2);
+      const [lo, hi] = d3.extent(serieTcm, d => d.v);
+      for (const d of serieTcm) {
+        const ext = d.v === lo || d.v === hi;
+        svg.append("circle").attr("cx", x(d.ano)).attr("cy", y(d.v)).attr("r", ext ? 8 : 6).attr("fill", ext ? (d.v === hi ? "#2a9d8f" : "#e76f51") : "#264653").attr("stroke", "white").attr("stroke-width", 2)
+          .append("title").text(`${d.ano}: ${fmtTcm(d.v)}`);
+        svg.append("text").attr("x", x(d.ano)).attr("y", y(d.v) - 13).attr("text-anchor", "middle").attr("font-size", 11).text(fmtTcm(d.v));
+      }
+      display(svg.node());
+    }
+  </script>
+  <script id="99" type="text/x-typescript" pinned="">
+    const rawUf = await FileAttachment("uf.csv").text();
+  </script>
+  <script id="102" type="text/x-typescript" pinned="">
+    const tabelaUf = (() => {
+      const primeira = rawUf.split("\n")[0];
+      const sep = primeira.includes("\t") ? "\t" : primeira.includes(";") ? ";" : ",";
+      const linhas = d3.dsvFormat(sep).parseRows(rawUf.trim());
+      const cab = linhas[0].map(s => s.trim());
+      const num = s => +String(s).trim().replace(",", ".");
+      const longo = [];
+      for (const r of linhas.slice(1)) {
+        const ano = +r[0];
+        cab.forEach((uf, j) => { if (j > 0 && uf) longo.push({ano, uf, v: num(r[j])}); });
+      }
+      return longo;
+    })();
+  </script>
+  <script id="103" type="text/x-typescript" pinned="">
+    const anosUf = [...new Set(tabelaUf.map(d => d.ano))].sort(d3.ascending);
+    const ufs = [...new Set(tabelaUf.map(d => d.uf))].filter(u => u !== "Total");
+    const dUf = tabelaUf.filter(d => d.uf !== "Total");
+    const totalPorAno = new Map(tabelaUf.filter(d => d.uf === "Total").map(d => [d.ano, d.v]));
+    const valUf = new Map(tabelaUf.map(d => [`${d.ano}|${d.uf}`, d.v]));
+    const getV = (ano, uf) => valUf.get(`${ano}|${uf}`);
+  </script>
+  <script id="104" type="text/x-typescript" pinned="">
+    const comSlider = (desenhar, {valor = 2024} = {}) => {
+      const entrada = Inputs.range([anosUf[0], anosUf[anosUf.length - 1]], {step: 1, value: valor, label: "Ano"});
+      const area = document.createElement("div");
+      const render = () => area.replaceChildren(desenhar(+entrada.value));
+      entrada.addEventListener("input", render);
+      render();
+      const raiz = document.createElement("div");
+      raiz.append(entrada, area);
+      return raiz;
+    };
+  </script>
+  <script id="105" type="text/x-typescript" pinned="">
+    const regioes = {
+      "Norte":        ["RO", "AC", "AM", "RR", "PA", "AP", "TO"],
+      "Nordeste":     ["MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA"],
+      "Centro-Oeste": ["MS", "MT", "GO", "DF"],
+      "Sudeste":      ["MG", "ES", "RJ", "SP"],
+      "Sul":          ["PR", "SC", "RS"]
+    };
+    const regiaoDe = new Map(Object.entries(regioes).flatMap(([r, l]) => l.map(u => [u, r])));
+    const corRegiao = d3.scaleOrdinal().domain(Object.keys(regioes)).range(["#2a9d8f", "#e76f51", "#e9c46a", "#264653", "#8e7dbe"]);
+  </script>
+  <script id="106" type="text/x-typescript" pinned="">
+    const fmtUf = d3.formatLocale({decimal: ",", thousands: ".", grouping: [3], currency: ["", ""]}).format(".1f");
+    const textoSobre = fill => d3.lab(fill).l < 58 ? "white" : "#222";
+    const svgUf = (w, h) => d3.create("svg")
+      .attr("viewBox", [0, 0, w, h]).attr("width", w).attr("height", h)
+      .style("font", "12px system-ui, sans-serif").style("max-width", "100%").style("height", "auto");
+  </script>
+  <script id="107" type="text/x-typescript" pinned="">
+    const corUf = d3.scaleSequentialSqrt(d3.interpolateYlGnBu).domain([0, d3.max(dUf, d => d.v)]);
+  </script>
+  <script id="108" type="text/x-typescript" pinned="">
+    const legendaSqrt = (svg, x, y, L = 220) => {
+      const max = corUf.domain()[1];
+      const id = "grad-uf-" + Math.random().toString(36).slice(2, 8);
+      const grad = svg.append("defs").append("linearGradient").attr("id", id);
+      d3.range(0, 1.001, 0.05).forEach(t => grad.append("stop").attr("offset", `${t * 100}%`).attr("stop-color", corUf(max * t * t)));
+      svg.append("rect").attr("x", x).attr("y", y).attr("width", L).attr("height", 9).attr("fill", `url(#${id})`);
+      [0, 5, 10, 25, 50, 100].forEach(v => {
+        const px = x + L * Math.sqrt(v / max);
+        svg.append("line").attr("x1", px).attr("x2", px).attr("y1", y + 9).attr("y2", y + 13).attr("stroke", "#777");
+        svg.append("text").attr("x", px).attr("y", y + 25).attr("text-anchor", "middle").attr("font-size", 10).attr("fill", "#555").text(v);
+      });
+    };
+  </script>
+  <script id="109" type="text/x-typescript" pinned="">
+    const codUf = {11: "RO", 12: "AC", 13: "AM", 14: "RR", 15: "PA", 16: "AP", 17: "TO", 21: "MA", 22: "PI", 23: "CE", 24: "RN", 25: "PB", 26: "PE", 27: "AL", 28: "SE", 29: "BA",
+      31: "MG", 32: "ES", 33: "RJ", 35: "SP", 41: "PR", 42: "SC", 43: "RS", 50: "MS", 51: "MT", 52: "GO", 53: "DF"};
+  </script>
+  <script id="110" type="text/x-typescript" pinned="">
+    const geoUf = await (async () => {
+      const url = "https://servicodados.ibge.gov.br/api/v3/malhas/paises/BR?formato=application/vnd.geo+json&qualidade=minima&intrarregiao=UF";
+      const j = await fetch(url).then(r => { if (!r.ok) throw new Error(`IBGE respondeu ${r.status}`); return r.json(); });
+      const siglaDe = f => {
+        const p = f.properties ?? {};
+        const c = p.codarea ?? p.CD_UF ?? p.cd_uf ?? p.id ?? f.id;
+        return codUf[+c] ?? p.sigla ?? p.SIGLA ?? p.UF ?? p.abbrev;
+      };
+      // O GeoJSON do IBGE segue a regra da mão direita (RFC 7946), mas o D3 espera o sentido oposto.
+      // Sem corrigir, cada estado vira "o mundo inteiro menos o estado" e o último desenhado (DF) cobre o mapa todo.
+      const inverter = rings => rings.map(ring => ring.slice().reverse());
+      const corrigir = f => {
+        const g = f.geometry;
+        if (g.type === "Polygon") g.coordinates = inverter(g.coordinates);
+        else if (g.type === "MultiPolygon") g.coordinates = g.coordinates.map(inverter);
+      };
+      j.features.forEach(f => {
+        f.properties.uf = siglaDe(f);
+        if (d3.geoArea(f) > 2 * Math.PI) corrigir(f);   // só corrige se estiver invertido
+      });
+      return j;
+    })();
+  </script>
+  <script id="111" type="text/x-typescript" pinned="">
+    const mapaUf = (w, h) => {
+      const proj = d3.geoMercator().fitExtent([[6, 6], [w - 6, h - 6]], geoUf);
+      return {proj, path: d3.geoPath(proj)};
+    };
+  </script>
+  <script id="113" type="text/x-typescript" pinned="">
+    display(comSlider(anoSel => {
+      const w = 640, h = 690;
+      const svg = svgUf(w, h);
+      const {path} = mapaUf(w, h - 100);
+      svg.append("text").attr("x", 12).attr("y", 22).attr("font-weight", "bold").attr("font-size", 14).text(`Matrículas PcD por 100 mil habitantes · ${anoSel}`);
+
+      const g = svg.append("g").attr("transform", "translate(0,36)");
+      for (const f of geoUf.features) {
+        const uf = f.properties.uf, v = getV(anoSel, uf), fill = v == null ? "#ddd" : corUf(v);
+        g.append("path").attr("d", path(f)).attr("fill", fill).attr("stroke", "white").attr("stroke-width", 0.8)
+          .append("title").text(`${uf}: ${v == null ? "sem dado" : fmtUf(v)}`);
+        const [cx, cy] = path.centroid(f);
+        if (isFinite(cx)) g.append("text").attr("x", cx).attr("y", cy).attr("dy", "0.35em").attr("text-anchor", "middle").attr("font-size", 9).attr("fill", textoSobre(fill)).attr("pointer-events", "none").text(uf);
+      }
+      legendaSqrt(svg, 12, h - 44, 240);
+      svg.append("text").attr("x", 262).attr("y", h - 35).attr("font-size", 10).attr("fill", "#666").text("por 100 mil hab. (escala de raiz quadrada)");
+      return svg.node();
+    }));
+  </script>
+  <script id="117" type="text/x-typescript" pinned="">
+    display(comSlider(anoSel => {
+      const ordenarPor = "ano";   // "ano" ou "media"
+      const chave = u => ordenarPor === "media" ? d3.mean(anosUf, a => getV(a, u)) : getV(anoSel, u);
+      const linhas = [...ufs].sort((a, b) => chave(b) - chave(a));
+      const cw = 54, ch = 20, folga = 10, m = {t: 60, l: 54, r: 20, b: 50};
+      const w = m.l + m.r + anosUf.length * cw, h = m.t + (linhas.length + 1) * ch + folga + m.b;
+      const svg = svgUf(w, h);
+
+      anosUf.forEach((a, j) => svg.append("text").attr("x", m.l + j * cw + cw / 2).attr("y", m.t - 8).attr("text-anchor", "middle")
+        .attr("font-weight", a === anoSel ? "bold" : "normal").text(a));
+      svg.append("text").attr("x", m.l).attr("y", 20).attr("font-weight", "bold")
+        .text(`Matrículas PcD por 100 mil hab. · ordenado por ${ordenarPor === "media" ? "média 2014–2024" : "valor de " + anoSel}`);
+
+      const linha = (rotulo, y0, get, negrito) => {
+        svg.append("text").attr("x", m.l - 8).attr("y", y0 + ch / 2).attr("dy", "0.35em").attr("text-anchor", "end").attr("font-weight", negrito ? "bold" : "normal").text(rotulo);
+        anosUf.forEach((a, j) => {
+          const v = get(a), fill = corUf(v);
+          svg.append("rect").attr("x", m.l + j * cw).attr("y", y0).attr("width", cw - 1).attr("height", ch - 1).attr("fill", fill)
+            .append("title").text(`${rotulo} · ${a}: ${fmtUf(v)}`);
+          svg.append("text").attr("x", m.l + j * cw + cw / 2).attr("y", y0 + ch / 2).attr("dy", "0.35em").attr("text-anchor", "middle").attr("font-size", 9).attr("fill", textoSobre(fill)).text(fmtUf(v));
+        });
+      };
+      linhas.forEach((u, i) => linha(u, m.t + i * ch, a => getV(a, u), false));
+      linha("Total", m.t + linhas.length * ch + folga, a => totalPorAno.get(a), true);
+      legendaSqrt(svg, m.l, h - 38, 240);
+      return svg.node();
+    }));
+  </script>
+  <script id="126" type="text/x-typescript" pinned="">
+    const desenharViolinos = ano => {
+      const w = 720, h = 460, m = {t: 50, r: 30, b: 50, l: 56};
+      const svg = svgUf(w, h);
+      const nomes = Object.keys(regioes);
+      const x = d3.scalePoint().domain(nomes).range([m.l + 70, w - m.r - 70]);
+      const vals = rg => regioes[rg].map(u => getV(ano, u));
+      const maxV = d3.max(ufs, u => getV(ano, u));
+      const y = d3.scaleLinear().domain([0, maxV * 1.08]).nice().range([h - m.b, m.t]);
+      const bw = Math.max(2.5, maxV * 0.05);
+      const dens = (v, t) => d3.mean(v, z => Math.exp(-0.5 * ((t - z) / bw) ** 2)) / (bw * Math.sqrt(2 * Math.PI));
+      const grade = d3.range(0, y.domain()[1] + 1e-9, y.domain()[1] / 100);
+      const perfis = nomes.map(rg => ({rg, pts: grade.map(t => ({t, d: dens(vals(rg), t)}))}));
+      const wd = d3.scaleLinear().domain([0, d3.max(perfis, p => d3.max(p.pts, q => q.d))]).range([0, 66]);
+
+      svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(8));
+      svg.append("text").attr("x", m.l).attr("y", 24).attr("font-weight", "bold").text(`Distribuição das UFs por região · ${ano}`);
+
+      perfis.forEach(({rg, pts}) => {
+        const cx = x(rg), c = corRegiao(rg);
+        svg.append("path").datum(pts).attr("d", d3.area().x0(q => cx - wd(q.d)).x1(q => cx + wd(q.d)).y(q => y(q.t)).curve(d3.curveCatmullRom))
+          .attr("fill", c).attr("fill-opacity", 0.3).attr("stroke", c).attr("stroke-width", 1.5);
+        const lista = [...regioes[rg]].sort((a, b) => getV(ano, a) - getV(ano, b));
+        lista.forEach((u, i) => svg.append("circle").attr("cx", cx + (((i * 37) % 11) - 5) * 2.2).attr("cy", y(getV(ano, u))).attr("r", 4).attr("fill", c).attr("stroke", "white")
+          .append("title").text(`${u}: ${fmtUf(getV(ano, u))}`));
+        const med = d3.median(lista, u => getV(ano, u));
+        svg.append("line").attr("x1", cx - 22).attr("x2", cx + 22).attr("y1", y(med)).attr("y2", y(med)).attr("stroke", "#222").attr("stroke-width", 2.5);
+        const top = lista[lista.length - 1];
+        svg.append("text").attr("x", cx + 12).attr("y", y(getV(ano, top)) - 8).attr("font-size", 10).text(`${top} ${fmtUf(getV(ano, top))}`);
+        svg.append("text").attr("x", cx).attr("y", h - m.b + 28).attr("text-anchor", "middle").attr("font-weight", "bold").text(rg);
+        svg.append("text").attr("x", cx).attr("y", h - m.b + 42).attr("text-anchor", "middle").attr("font-size", 10).attr("fill", "#777").text(`n = ${lista.length}, mediana ${fmtUf(med)}`);
+      });
+      return svg.node();
+    };
+  </script>
+  <script id="127" type="text/x-typescript" pinned="">
+    display(comSlider(ano => desenharViolinos(ano)));
+  </script>
+  <script id="131" type="text/x-typescript" pinned="">
+    display(comSlider(anoSel => {
+      const teto = 130;
+      const ordem = [...ufs].sort((a, b) => getV(anoSel, b) - getV(anoSel, a));
+      const cols = 9, cw = 104, ch = 122, sq = 6, g = 1, painel = 10 * (sq + g);
+      const rows = Math.ceil(ordem.length / cols);
+      const w = cols * cw + 20, h = rows * ch + 50;
+      const svg = svgUf(w, h);
+      svg.append("text").attr("x", 12).attr("y", 20).attr("font-weight", "bold").text(`${anoSel}: 100 quadradinhos = ${teto} matrículas PcD por 100 mil hab. (1 quadradinho = ${fmtUf(teto / 100)})`);
+
+      ordem.forEach((uf, i) => {
+        const x0 = (i % cols) * cw + 18, y0 = Math.floor(i / cols) * ch + 40;
+        const v = getV(anoSel, uf), preenchido = Math.min(100, v / teto * 100);
+        const cheios = Math.floor(preenchido), frac = preenchido - cheios, c = corRegiao(regiaoDe.get(uf));
+        for (let k = 0; k < 100; k++) {
+          const col = k % 10, lin = Math.floor(k / 10);
+          const x = x0 + col * (sq + g), y = y0 + (9 - lin) * (sq + g);
+          svg.append("rect").attr("x", x).attr("y", y).attr("width", sq).attr("height", sq).attr("fill", "#eceff1");
+          if (k < cheios) svg.append("rect").attr("x", x).attr("y", y).attr("width", sq).attr("height", sq).attr("fill", c);
+          else if (k === cheios && frac > 0) svg.append("rect").attr("x", x).attr("y", y).attr("width", sq * frac).attr("height", sq).attr("fill", c);
+        }
+        svg.append("text").attr("x", x0).attr("y", y0 + painel + 13).attr("font-weight", "bold").text(uf);
+        svg.append("text").attr("x", x0 + painel).attr("y", y0 + painel + 13).attr("text-anchor", "end").attr("font-size", 11).text(fmtUf(v));
+      });
+      return svg.node();
+    }));
+  </script>
+</notebook>

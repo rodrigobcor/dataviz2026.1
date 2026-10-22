@@ -19,9 +19,16 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm run build
+      - name: Localizar pasta de saída
+        id: saida
+        run: |
+          DIR=$(find . -type d -name dist -not -path "*/node_modules/*" | head -n 1)
+          echo "Pasta encontrada: $DIR"
+          ls -a "$DIR"
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .observablehq/dist
+          path: ${{ steps.saida.outputs.dir }}
   deploy:
     needs: build
     runs-on: ubuntu-latest
